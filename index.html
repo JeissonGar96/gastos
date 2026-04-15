@@ -6,6 +6,7 @@
 <title>Mr. Budget</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
   --bg:#0f1117;--surface:#181c26;--surface2:#1e2332;--surface3:#252a3a;
@@ -189,9 +190,66 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   .collapsible-card .chev{transform:rotate(-90deg)}
   .collapsible-card.open .chev{transform:rotate(0deg)}
 }
+
+/* ── PIN SCREEN ─────────────────────────────────────────────── */
+.pin-screen{position:fixed;inset:0;background:var(--bg);z-index:9998;display:flex;align-items:center;justify-content:center;flex-direction:column}
+.pin-box{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:36px 32px;width:320px;max-width:90vw;text-align:center}
+.pin-logo{width:48px;height:48px;background:linear-gradient(135deg,var(--green),var(--teal));border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
+.pin-title{font-size:18px;font-weight:600;margin-bottom:6px}
+.pin-sub{font-size:12px;color:var(--text2);margin-bottom:24px}
+.pin-dots{display:flex;justify-content:center;gap:12px;margin-bottom:24px}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border2);transition:all .15s}
+.pin-dot.filled{background:var(--green);border-color:var(--green)}
+.pin-dot.error{background:var(--red);border-color:var(--red)}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.pin-key{height:52px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);font-size:18px;font-weight:500;color:var(--text);cursor:pointer;transition:all .15s;font-family:var(--mono)}
+.pin-key:hover{background:var(--surface3);border-color:var(--border2)}
+.pin-key:active{transform:scale(.95)}
+.pin-key.del{font-size:14px;color:var(--text2)}
+.pin-error{font-size:12px;color:var(--red);min-height:18px;margin-bottom:4px}
+.pin-sync-status{font-size:11px;color:var(--text3);margin-top:12px;min-height:16px}
+.sync-indicator{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--text3);font-family:var(--mono)}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--text3)}
+.sync-dot.syncing{background:var(--amber);animation:pulse .8s infinite}
+.sync-dot.ok{background:var(--green)}
+.sync-dot.err{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 </style>
 </head>
 <body>
+<!-- PIN SCREEN -->
+<div class="pin-screen" id="pin-screen">
+  <div class="pin-box">
+    <div class="pin-logo">
+      <svg width="24" height="24" viewBox="0 0 20 20" fill="none" stroke="white" stroke-width="1.8"><path d="M10 2C5.58 2 2 5.58 2 10s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8z"/><path d="M10 6v4l2.5 1.5" stroke-linecap="round"/></svg>
+    </div>
+    <div class="pin-title" id="pin-title">Mr. Budget</div>
+    <div class="pin-sub" id="pin-sub">Ingresa tu PIN para continuar</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-error" id="pin-error"></div>
+    <div class="pin-pad">
+      <button class="pin-key" onclick="pinPress('1')">1</button>
+      <button class="pin-key" onclick="pinPress('2')">2</button>
+      <button class="pin-key" onclick="pinPress('3')">3</button>
+      <button class="pin-key" onclick="pinPress('4')">4</button>
+      <button class="pin-key" onclick="pinPress('5')">5</button>
+      <button class="pin-key" onclick="pinPress('6')">6</button>
+      <button class="pin-key" onclick="pinPress('7')">7</button>
+      <button class="pin-key" onclick="pinPress('8')">8</button>
+      <button class="pin-key" onclick="pinPress('9')">9</button>
+      <button class="pin-key" style="visibility:hidden"></button>
+      <button class="pin-key" onclick="pinPress('0')">0</button>
+      <button class="pin-key del" onclick="pinDel()">⌫</button>
+    </div>
+    <div class="pin-sync-status" id="pin-sync-status"></div>
+  </div>
+</div>
+
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 <div class="app">
 
@@ -242,6 +300,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       </button>
     </div>
     <div id="save-msg" style="font-size:10px;color:var(--green);text-align:center;margin-bottom:6px;display:none">✓ Guardado correctamente</div>
+    <div style="display:flex;justify-content:center;margin-bottom:6px">
+      <span class="sync-indicator" id="sync-indicator">
+        <span class="sync-dot" id="sync-dot"></span>
+        <span id="sync-label">sin cambios</span>
+      </span>
+    </div>
     <div class="sec-label" style="margin-bottom:5px">Cambiar mes</div>
     <div id="month-list" style="display:flex;flex-direction:column;gap:3px;max-height:180px;overflow-y:auto"></div>
   </div>
@@ -525,6 +589,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       </div>
     </div>
     <div class="setting-row">
+      <div><div class="setting-label">Cambiar PIN</div><div class="setting-desc">Modifica el PIN de acceso</div></div>
+      <button class="btn btn-outline" style="font-size:11px" onclick="changePin()">Cambiar PIN</button>
+    </div>
+    <div class="setting-row">
       <div><div class="setting-label">Borrar todo</div><div class="setting-desc">Elimina todos los datos guardados del navegador</div></div>
       <button class="btn btn-danger" style="font-size:11px" onclick="if(confirm('¿Borrar TODO? No se puede deshacer.'))nukeAll()">Borrar todo</button>
     </div>
@@ -573,16 +641,158 @@ const TEMPLATE=()=>({
   goal:0,nextId:100
 });
 
+// ── SUPABASE ─────────────────────────────────────────────────────
+const SUPA_URL = 'https://gmwshawowweboumpvmvi.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdtd3NoYXdvd3dlYm91bXB2bXZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMTA4MzEsImV4cCI6MjA5MTc4NjgzMX0.qvPuN5SbWlmL1JIIYQvIkKYSQHQqTMOhn39CfmfRzNY';
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// ── PIN LOGIC ────────────────────────────────────────────────────
+let pinBuffer = '';
+let pinMode = 'enter'; // 'enter' | 'create' | 'confirm'
+let pinConfirmTemp = '';
+let sessionPinHash = null;
+
+async function sha256(str){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function pinPress(digit){
+  if(pinBuffer.length>=4) return;
+  pinBuffer += digit;
+  updatePinDots();
+  if(pinBuffer.length===4) setTimeout(()=>pinSubmit(), 120);
+}
+
+function pinDel(){
+  pinBuffer = pinBuffer.slice(0,-1);
+  updatePinDots(false);
+  document.getElementById('pin-error').textContent='';
+}
+
+function updatePinDots(filled=true){
+  for(let i=0;i<4;i++){
+    const d=document.getElementById('pd'+i);
+    d.className='pin-dot'+(i<pinBuffer.length?' filled':'');
+  }
+}
+
+function pinError(msg){
+  for(let i=0;i<4;i++) document.getElementById('pd'+i).className='pin-dot error';
+  document.getElementById('pin-error').textContent=msg;
+  setTimeout(()=>{pinBuffer='';updatePinDots();document.getElementById('pin-error').textContent='';},900);
+}
+
+async function pinSubmit(){
+  const hash = await sha256(pinBuffer);
+  if(pinMode==='create'){
+    pinConfirmTemp = hash;
+    pinMode = 'confirm';
+    pinBuffer = '';
+    updatePinDots();
+    document.getElementById('pin-sub').textContent='Confirma tu PIN';
+    return;
+  }
+  if(pinMode==='confirm'){
+    if(hash !== pinConfirmTemp){ pinError('Los PINs no coinciden'); return; }
+    localStorage.setItem('mb_pin_hash', hash);
+    sessionPinHash = hash;
+    pinBuffer='';
+    document.getElementById('pin-sync-status').textContent='Creando tu espacio...';
+    await loadFromSupabase(hash);
+    document.getElementById('pin-screen').style.display='none';
+    return;
+  }
+  // mode === 'enter'
+  const stored = localStorage.getItem('mb_pin_hash');
+  if(hash !== stored){ pinError('PIN incorrecto'); return; }
+  sessionPinHash = hash;
+  pinBuffer='';
+  document.getElementById('pin-sync-status').textContent='Cargando datos...';
+  await loadFromSupabase(hash);
+  document.getElementById('pin-screen').style.display='none';
+}
+
+// ── SUPABASE SYNC ────────────────────────────────────────────────
+function setSyncStatus(status){
+  const dot=document.getElementById('sync-dot');
+  const lbl=document.getElementById('sync-label');
+  if(!dot||!lbl) return;
+  dot.className='sync-dot';
+  if(status==='syncing'){dot.classList.add('syncing');lbl.textContent='sincronizando...';}
+  else if(status==='ok'){dot.classList.add('ok');lbl.textContent='sincronizado';}
+  else if(status==='err'){dot.classList.add('err');lbl.textContent='error de sync';}
+  else{lbl.textContent='sin cambios';}
+}
+
+async function loadFromSupabase(pinHash){
+  try{
+    const {data,error} = await supa.from('budget_data').select('months').eq('id',pinHash).single();
+    if(error && error.code!=='PGRST116') throw error;
+    if(data && data.months){
+      months = data.months;
+    } else {
+      // First time: upload localStorage data if any, else start fresh
+      const local = JSON.parse(localStorage.getItem('mb_months')||'{}');
+      months = Object.keys(local).length>0 ? local : {};
+    }
+    migrateData();
+    setSyncStatus('ok');
+  } catch(e){
+    console.error('Load error:',e);
+    months = JSON.parse(localStorage.getItem('mb_months')||'{}');
+    migrateData();
+    setSyncStatus('err');
+  }
+  // Init state
+  if(!months[activeKey]) months[activeKey]=newMonthFromTemplate();
+  state=months[activeKey];
+  localStorage.setItem('mb_months',JSON.stringify(months));
+  buildMonthList();
+  document.getElementById('goal-input').value=state.goal||0;
+  renderAll();update(false);
+}
+
+let syncTimer=null;
+async function persist(){
+  // Save locally always
+  localStorage.setItem('mb_months',JSON.stringify(months));
+  // Debounce cloud sync by 1.5s
+  clearTimeout(syncTimer);
+  setSyncStatus('syncing');
+  syncTimer=setTimeout(async()=>{
+    if(!sessionPinHash) return;
+    try{
+      const {error} = await supa.from('budget_data').upsert({
+        id: sessionPinHash,
+        months: months,
+        updated_at: new Date().toISOString()
+      },{onConflict:'id'});
+      if(error) throw error;
+      setSyncStatus('ok');
+    } catch(e){
+      console.error('Sync error:',e);
+      setSyncStatus('err');
+    }
+  },1500);
+}
+
+function migrateData(){
+  Object.keys(months).forEach(key=>{
+    const m=months[key];
+    if(!m.variableJeisson){m.variableJeisson=m.variable||[];m.variableAle=[];m.variableShared=[];}
+    if(!m._label) m._label=key;
+  });
+}
+
 function clone(o){return JSON.parse(JSON.stringify(o))}
 function fmt(n){return'$'+Math.round(n).toLocaleString('en-US')}
 function pct(a,b){return b>0?Math.round(a/b*100):0}
 function sum(list){return list.reduce((s,e)=>s+(parseFloat(e.amount)||0),0)}
-function persist(){localStorage.setItem('mb_months',JSON.stringify(months))}
 
 let activeKey=monthKey(new Date());
-let months=JSON.parse(localStorage.getItem('mb_months')||'{}');
-if(!months[activeKey])months[activeKey]=TEMPLATE();
-let state=months[activeKey];
+let months={};
+let state={};
 
 const PAGE_TITLES={dashboard:'Dashboard',history:'Reportes',accounts:'Cuentas',settings:'Ajustes'};
 
@@ -662,7 +872,7 @@ function buildMonthList(){
     row.appendChild(delBtn);
     container.appendChild(row);
   });
-  document.getElementById('active-month-name').textContent=months[activeKey]&&months[activeKey]._label?months[activeKey]._label:activeKey;
+  const amn=document.getElementById('active-month-name');if(amn)amn.textContent=months[activeKey]&&months[activeKey]._label?months[activeKey]._label:activeKey;
 }
 
 function openEditMonthModal(key){
@@ -826,7 +1036,7 @@ function renderAll(){
   renderList('variable-jeisson-list',state.variableJeisson,C_EXP_V,'variableJeisson');
   renderList('variable-ale-list',state.variableAle,['#ff6ec7','#ff9dd6','#ffccea','#dd4499','#ff88bb'],'variableAle');
   renderList('variable-shared-list',state.variableShared,['#9b6dff','#b89aff','#d4c3ff','#7744dd','#aa88ff'],'variableShared');
-  document.getElementById('dash-month-label').textContent=monthLabel(activeKey);
+  const dml=document.getElementById('dash-month-label');if(dml)dml.textContent=monthLabel(activeKey);
 }
 
 function updateField(type,id,field,val){
@@ -891,6 +1101,7 @@ function update(rerender=true){
     accIncome+=mi;accExp+=me;accSaved+=(mi-me);
   });
 
+  if(!document.getElementById('m-income'))return;
   document.getElementById('m-income').textContent=fmt(totalIncome);
   document.getElementById('m-income-sub').textContent=fmt(incF)+' fijos · '+fmt(incV)+' variables';
   document.getElementById('m-expenses').textContent=fmt(totalExp);
@@ -1013,22 +1224,41 @@ function renderAccounts(){
 }
 
 function clearHistory(){months={};months[activeKey]=TEMPLATE();state=months[activeKey];persist();buildMonthList();renderAll();update(false);renderHistory();}
-function nukeAll(){localStorage.removeItem('mb_months');months={};months[activeKey]=TEMPLATE();state=months[activeKey];persist();buildMonthList();renderAll();update(false);}
+function nukeAll(){if(!sessionPinHash)return;months={};months[activeKey]=TEMPLATE();state=months[activeKey];persist();buildMonthList();renderAll();update(false);}
+function changePin(){
+  localStorage.removeItem('mb_pin_hash');
+  sessionPinHash=null;
+  pinMode='create';
+  pinBuffer='';
+  updatePinDots();
+  document.getElementById('pin-title').textContent='Nuevo PIN';
+  document.getElementById('pin-sub').textContent='Crea tu nuevo PIN de 4 dígitos';
+  document.getElementById('pin-error').textContent='';
+  document.getElementById('pin-sync-status').textContent='';
+  document.getElementById('pin-screen').style.display='flex';
+}
+
 function exportData(){const b=new Blob([JSON.stringify(months,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='mr-budget-historial.json';a.click();}
 function importData(){const inp=document.createElement('input');inp.type='file';inp.accept='.json';inp.onchange=e=>{const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=ev=>{try{const data=JSON.parse(ev.target.result);if(typeof data!=='object')throw new Error();months=data;const keys=Object.keys(months).sort().reverse();activeKey=keys[0]||monthKey(new Date());if(!months[activeKey])months[activeKey]=TEMPLATE();state=months[activeKey];if(!state.variableJeisson){state.variableJeisson=state.variable||[];state.variableAle=[];state.variableShared=[];}persist();buildMonthList();document.getElementById('goal-input').value=state.goal||0;renderAll();update(false);alert('✓ Datos importados correctamente.');}catch{alert('Error: el archivo no es válido.');}};r.readAsText(file);};inp.click();}
 
-// Migrate old data
-Object.keys(months).forEach(key=>{
-  const m=months[key];
-  if(!m.variableJeisson){m.variableJeisson=m.variable||[];m.variableAle=[];m.variableShared=[];}
-  if(!m._label) m._label=key; // use key as label if no custom label
+// ── BOOT ─────────────────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", function boot(){
+  const hasPinHash = localStorage.getItem('mb_pin_hash');
+  const pinScreen = document.getElementById('pin-screen');
+  if(!hasPinHash){
+    // First time ever — create PIN
+    pinMode='create';
+    document.getElementById('pin-title').textContent='Bienvenido';
+    document.getElementById('pin-sub').textContent='Crea tu PIN de 4 dígitos';
+    pinScreen.style.display='flex';
+  } else {
+    // Has PIN — ask for it
+    pinMode='enter';
+    document.getElementById('pin-title').textContent='Mr. Budget';
+    document.getElementById('pin-sub').textContent='Ingresa tu PIN para continuar';
+    pinScreen.style.display='flex';
+  }
 });
-state=months[activeKey];
-persist();
-
-buildMonthList();
-document.getElementById('goal-input').value=state.goal||0;
-renderAll();update(false);
 </script>
 </body>
 </html>
