@@ -86,9 +86,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .entry-right{display:flex;align-items:center;gap:4px;flex-shrink:0}
 .entry-amount-btn{font-size:12.5px;font-weight:500;font-family:var(--mono);background:var(--surface3);border:1px solid var(--border);border-radius:5px;padding:3px 8px;color:var(--text);cursor:pointer;transition:all .15s;min-width:72px;text-align:right}
 .entry-amount-btn:hover{border-color:var(--green);color:var(--green)}
-.entry-budget-bar{height:3px;background:var(--surface3);border-radius:2px;margin-top:4px;overflow:hidden}
-.entry-budget-fill{height:100%;border-radius:2px;transition:width .3s}
 .entry-wrap{display:flex;flex-direction:column}
+.budget-badge{font-size:10.5px;font-weight:500;font-family:var(--mono);padding:2px 7px;border-radius:5px;white-space:nowrap;flex-shrink:0}
+.budget-badge.ok{background:rgba(0,214,143,.12);color:#00d68f}
+.budget-badge.warn{background:rgba(255,184,77,.12);color:#ffb84d}
+.budget-badge.over{background:rgba(255,92,106,.12);color:#ff5c6a}
 
 /* PROG BARS */
 .prog-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
@@ -536,62 +538,63 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     </div>
   </div>
 
-  <!-- FIXED EXPENSES with tabs -->
-  <div class="card collapsible-card" style="margin-bottom:14px" id="card-exp-fixed">
-    <div class="card-header collapsible-trigger" onclick="toggleCard('card-exp-fixed')">
-      <span class="card-title">Gastos fijos</span>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span class="badge" style="background:rgba(77,159,255,.1);color:var(--blue)">Mensuales</span>
-        <svg class="chev" width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+  <!-- FIXED + VARIABLE EXPENSES side by side -->
+  <div class="two-col">
+    <div class="card collapsible-card" id="card-exp-fixed">
+      <div class="card-header collapsible-trigger" onclick="toggleCard('card-exp-fixed')">
+        <span class="card-title">Gastos fijos</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="badge" style="background:rgba(77,159,255,.1);color:var(--blue)">Mensuales</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+        </div>
+      </div>
+      <div class="collapsible-body">
+        <div class="tab-bar">
+          <button class="tab-btn active" onclick="switchTab('fixed','jeisson',this)">Jeisson</button>
+          <button class="tab-btn" onclick="switchTab('fixed','ale',this)">Ale</button>
+          <button class="tab-btn" onclick="switchTab('fixed','shared',this)">Compartidos</button>
+        </div>
+        <div class="tab-pane active" id="fixed-tab-jeisson">
+          <div class="entry-list" id="fixed-jeisson-list"></div>
+          <button class="btn btn-add" onclick="addEntry('fixedJeisson')">+ Agregar gasto fijo de Jeisson</button>
+        </div>
+        <div class="tab-pane" id="fixed-tab-ale">
+          <div class="entry-list" id="fixed-ale-list"></div>
+          <button class="btn btn-add" onclick="addEntry('fixedAle')">+ Agregar gasto fijo de Ale</button>
+        </div>
+        <div class="tab-pane" id="fixed-tab-shared">
+          <div class="entry-list" id="fixed-shared-list"></div>
+          <button class="btn btn-add" onclick="addEntry('fixedShared')">+ Agregar gasto fijo compartido</button>
+        </div>
       </div>
     </div>
-    <div class="collapsible-body">
-      <div class="tab-bar">
-        <button class="tab-btn active" onclick="switchTab('fixed','jeisson',this)">Jeisson</button>
-        <button class="tab-btn" onclick="switchTab('fixed','ale',this)">Ale</button>
-        <button class="tab-btn" onclick="switchTab('fixed','shared',this)">Compartidos</button>
-      </div>
-      <div class="tab-pane active" id="fixed-tab-jeisson">
-        <div class="entry-list" id="fixed-jeisson-list"></div>
-        <button class="btn btn-add" onclick="addEntry('fixedJeisson')">+ Agregar gasto fijo de Jeisson</button>
-      </div>
-      <div class="tab-pane" id="fixed-tab-ale">
-        <div class="entry-list" id="fixed-ale-list"></div>
-        <button class="btn btn-add" onclick="addEntry('fixedAle')">+ Agregar gasto fijo de Ale</button>
-      </div>
-      <div class="tab-pane" id="fixed-tab-shared">
-        <div class="entry-list" id="fixed-shared-list"></div>
-        <button class="btn btn-add" onclick="addEntry('fixedShared')">+ Agregar gasto fijo compartido</button>
-      </div>
-    </div>
-  </div>
 
-  <!-- VARIABLE EXPENSES with tabs -->
-  <div class="card collapsible-card" style="margin-bottom:14px" id="card-exp-var">
-    <div class="card-header collapsible-trigger" onclick="toggleCard('card-exp-var')">
-      <span class="card-title">Gastos variables</span>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span class="badge" style="background:rgba(255,184,77,.1);color:var(--amber)">Variables</span>
-        <svg class="chev" width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+    <div class="card collapsible-card" id="card-exp-var">
+      <div class="card-header collapsible-trigger" onclick="toggleCard('card-exp-var')">
+        <span class="card-title">Gastos variables</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="badge" style="background:rgba(255,184,77,.1);color:var(--amber)">Variables</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+        </div>
       </div>
-    </div>
-    <div class="collapsible-body">
-      <div class="tab-bar">
-        <button class="tab-btn active" onclick="switchTab('variable','jeisson',this)">Jeisson</button>
-        <button class="tab-btn" onclick="switchTab('variable','ale',this)">Ale</button>
-        <button class="tab-btn" onclick="switchTab('variable','shared',this)">Compartidos</button>
-      </div>
-      <div class="tab-pane active" id="variable-tab-jeisson">
-        <div class="entry-list" id="variable-jeisson-list"></div>
-        <button class="btn btn-add" onclick="addEntry('variableJeisson')">+ Agregar gasto variable de Jeisson</button>
-      </div>
-      <div class="tab-pane" id="variable-tab-ale">
-        <div class="entry-list" id="variable-ale-list"></div>
-        <button class="btn btn-add" onclick="addEntry('variableAle')">+ Agregar gasto variable de Ale</button>
-      </div>
-      <div class="tab-pane" id="variable-tab-shared">
-        <div class="entry-list" id="variable-shared-list"></div>
-        <button class="btn btn-add" onclick="addEntry('variableShared')">+ Agregar gasto variable compartido</button>
+      <div class="collapsible-body">
+        <div class="tab-bar">
+          <button class="tab-btn active" onclick="switchTab('variable','jeisson',this)">Jeisson</button>
+          <button class="tab-btn" onclick="switchTab('variable','ale',this)">Ale</button>
+          <button class="tab-btn" onclick="switchTab('variable','shared',this)">Compartidos</button>
+        </div>
+        <div class="tab-pane active" id="variable-tab-jeisson">
+          <div class="entry-list" id="variable-jeisson-list"></div>
+          <button class="btn btn-add" onclick="addEntry('variableJeisson')">+ Agregar gasto variable de Jeisson</button>
+        </div>
+        <div class="tab-pane" id="variable-tab-ale">
+          <div class="entry-list" id="variable-ale-list"></div>
+          <button class="btn btn-add" onclick="addEntry('variableAle')">+ Agregar gasto variable de Ale</button>
+        </div>
+        <div class="tab-pane" id="variable-tab-shared">
+          <div class="entry-list" id="variable-shared-list"></div>
+          <button class="btn btn-add" onclick="addEntry('variableShared')">+ Agregar gasto variable compartido</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1128,34 +1131,29 @@ function renderList(containerId,list,colors,type){
     const wrap=document.createElement('div');
     wrap.className='entry-wrap';
 
+    // Build budget badge if enabled
+    let budgetBadgeHtml='';
+    if(entry.hasBudget&&entry.budgetAmount>0){
+      const p=pct(spent,entry.budgetAmount);
+      const remaining=entry.budgetAmount-spent;
+      const cls=p>=100?'over':p>=80?'warn':'ok';
+      const label=remaining>=0?fmt(remaining):'-'+fmt(Math.abs(remaining));
+      budgetBadgeHtml=`<span class="budget-badge ${cls}">${label}</span>`;
+    }
+
     const row=document.createElement('div');
     row.className='entry';
     row.innerHTML=`
       <div class="entry-dot" style="background:${color}"></div>
       <span class="entry-name" onclick="openItemModal('${type}',${entry.id})" title="Configurar">${entry.name||'Sin nombre'}</span>
       <div class="entry-right">
+        ${budgetBadgeHtml}
         <button class="entry-amount-btn" onclick="handleAmountClick('${type}',${entry.id})">${fmt(spent)}</button>
         <button class="btn-icon" onclick="openItemModal('${type}',${entry.id})" title="Configurar">
           <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
         </button>
       </div>`;
     wrap.appendChild(row);
-
-    // Budget bar if enabled
-    if(entry.hasBudget&&entry.budgetAmount>0){
-      const p=pct(spent,entry.budgetAmount);
-      const barColor=p>=100?'var(--red)':p>=80?'var(--amber)':'var(--green)';
-      const barDiv=document.createElement('div');
-      barDiv.className='entry-budget-bar';
-      barDiv.innerHTML=`<div class="entry-budget-fill" style="width:${p}%;background:${barColor}"></div>`;
-      wrap.appendChild(barDiv);
-      const infoDiv=document.createElement('div');
-      infoDiv.style.cssText='display:flex;justify-content:space-between;font-size:9.5px;color:var(--text3);font-family:var(--mono);padding:1px 8px 4px';
-      const remaining=entry.budgetAmount-spent;
-      infoDiv.innerHTML=`<span style="color:${remaining>=0?'var(--green)':'var(--red)'}">${remaining>=0?'Quedan '+fmt(remaining):'Excedido '+fmt(Math.abs(remaining))}</span><span>${p}% de ${fmt(entry.budgetAmount)}</span>`;
-      wrap.appendChild(infoDiv);
-    }
-
     el.appendChild(wrap);
   });
 }
